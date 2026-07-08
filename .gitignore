@@ -113,8 +113,7 @@ ehthumbs.db
 Desktop.ini
 
 # IDE specific files
-.idea/*
-!.idea/vcs.xml
+.idea/
 .vscode/
 *.swp
 *.swo
