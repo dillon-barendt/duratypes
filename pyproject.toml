@@ -1,42 +1,60 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "duratypes"
 version = "0.1.0"
-description = "A Python package for duration and time-related data types and utilities"
+description = "Typed duration parsing and formatting utilities for Pydantic and modern Python apps"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "Dillon Barendt", email = "dillon.barendt@ticket-vision.com" }
 ]
 maintainers = [
-    { name = "Dillon", email = "dillon.barendt@ticket-vision.com" }
+    { name = "Dillon Barendt", email = "dillon.barendt@ticket-vision.com" }
 ]
-keywords = ["duration", "time", "datetime", "utilities"]
+keywords = [
+    "duration",
+    "pydantic",
+    "pydantic-v2",
+    "timeout",
+    "ttl",
+    "retry",
+    "configuration",
+    "asyncio",
+    "fastapi",
+    "time",
+]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
+    "Framework :: Pydantic",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Utilities"
+    "Topic :: Utilities",
+    "Typing :: Typed",
 ]
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.5",
-    "setuptools>=61.0",
-    "wheel>=0.45.1",
 ]
+
+[project.optional-dependencies]
+fastapi = ["fastapi>=0.115"]
+integrations = ["fastapi>=0.115"]
 
 [project.urls]
 Homepage = "https://github.com/dillon-barendt/duratypes"
 Repository = "https://github.com/dillon-barendt/duratypes"
-Documentation = "https://github.com/dillon-barendt/duratypes#readme"
-"Bug Tracker" = "https://github.com/dillon-barendt/duratypes/issues"
+Documentation = "https://dillon-barendt.github.io/duratypes/"
+Issues = "https://github.com/dillon-barendt/duratypes/issues"
+Changelog = "https://github.com/dillon-barendt/duratypes/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -44,18 +62,20 @@ where = ["src"]
 [tool.setuptools.package-dir]
 "" = "src"
 
+[tool.setuptools.package-data]
+duratypes = ["py.typed"]
+
 [dependency-groups]
 dev = [
+    "build>=1.2.2",
     "pytest>=8.4.1",
     "pytest-cov>=4.0.0",
     "hypothesis>=6.0.0",
     "ruff>=0.1.0",
     "mypy>=1.0.0",
-    "black>=23.0.0",
-    "pre-commit>=3.0.0",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.16",
-    "mkdocstrings>=0.30.0",
+    "twine>=6.1.0",
 ]
 
 # Ruff configuration for linting and formatting

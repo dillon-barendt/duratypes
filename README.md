@@ -1,328 +1,335 @@
 # duratypes
 
-Typed duration utilities for Python, designed for speed, clarity, and seamless use with **Pydantic v2**.
+[![CI](https://github.com/dillon-barendt/duratypes/actions/workflows/ci.yml/badge.svg)](https://github.com/dillon-barendt/duratypes/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-## Features
+Fast, typed duration parsing for Pydantic and modern Python apps.
 
-- **Fast & Lightweight**: Zero external dependencies except Pydantic
-- **Multiple Input Formats**: Compound (`"1h30m"`), ISO 8601 (`"PT1H30M"`), and numeric (`90`)
-- **Pydantic Integration**: Seamless validation with `Annotated` types
-- **Type Safety**: Full type hints and comprehensive error messages
-- **Performance**: Singleton `TypeAdapter` for maximum reuse
-- **Robust**: Handles edge cases, negative durations, and validation
+`duratypes` turns human-readable duration values like `30s`, `5m`,
+`1h30m`, and `PT1H30M` into typed integer seconds that work cleanly
+inside Pydantic v2 models.
 
----
+## Why duratypes?
 
-## Installation
+Python services often accept duration values from environment variables, YAML
+files, CLI flags, API payloads, and user-facing configuration. Those values are
+usually strings at the boundary but need to become precise values inside the
+program.
+
+`duratypes` is a small primitive for that boundary:
+
+- parse ergonomic duration strings into integer seconds
+- use the same behavior directly or inside Pydantic v2 models
+- keep timeout, retry, TTL, scheduling, and async configuration readable
+- fail with specific errors when input is invalid
+
+## Design Philosophy
+
+Python applications often accept duration values from environment variables,
+YAML files, CLI flags, API payloads, and user-facing config. Those values are
+usually strings at the boundary but need to become precise, typed values inside
+the program.
+
+`duratypes` focuses on that boundary: accepting ergonomic duration input and
+normalizing it into simple integer seconds that are easy to store, compare,
+validate, and pass to async/runtime APIs.
+
+## Beyond parsing: typed duration primitives for modern Python infrastructure
+
+`duratypes` starts with a tiny core: parse human-readable duration values and
+normalize them into typed values for Pydantic models.
+
+The roadmap extends that primitive into optional helpers for service
+configuration, async task queues, message streams, agent runtimes, and graph
+workflows.
+
+The base package stays small. Framework integrations are optional.
+
+- [Integration docs](docs/integrations.md)
+- [Roadmap](docs/roadmap.md)
+- [Design notes](docs/design.md)
+
+## Install
 
 ```bash
 pip install duratypes
 ```
 
-For development:
-```bash
-# Clone the repository
-git clone https://github.com/dillon-barendt/duratypes.git
-cd duratypes
-
-# Install with development dependencies using uv
-uv sync
-source .venv/bin/activate
-
-# Or install in editable mode
-uv pip install -e .
-```
-
----
-
 ## Quick Start
 
 ```python
-from duratypes import Duration, parse_duration, format_duration
-from pydantic import BaseModel
+from duratypes import format_duration, parse_duration
 
-# Direct parsing
-seconds = parse_duration("1h30m")  # Returns: 5400
-formatted = format_duration(5400)  # Returns: "1h30m"
-
-# Pydantic integration
-class Config(BaseModel):
-    timeout: Duration = "2.5m"  # Converts to 150 seconds
-    retry_delay: Duration = 30   # Direct integer input
-    
-config = Config()
-print(config.timeout)      # 150
-print(config.retry_delay)  # 30
+assert parse_duration("30s") == 30
+assert parse_duration("5m") == 300
+assert parse_duration("1h30m") == 5400
+assert parse_duration("PT1H30M") == 5400
+assert format_duration(5400) == "1h30m"
 ```
 
----
-
-## Supported Input Formats
-
-### 1. Compound Format
-Human-readable duration strings with units:
-
-```python
-parse_duration("30s")        # 30 seconds
-parse_duration("5m")         # 300 seconds  
-parse_duration("2h")         # 7200 seconds
-parse_duration("1h30m45s")   # 5445 seconds
-parse_duration("90 minutes") # 5400 seconds
-parse_duration("-1h30m")     # -5400 seconds (negative)
-```
-
-**Supported units:**
-- **Seconds**: `s`, `sec`, `second`, `seconds`
-- **Minutes**: `m`, `min`, `minute`, `minutes`  
-- **Hours**: `h`, `hour`, `hours`
-
-### 2. ISO 8601 Duration Format
-Standard ISO 8601 duration strings:
-
-```python
-parse_duration("PT30S")      # 30 seconds
-parse_duration("PT5M")       # 300 seconds
-parse_duration("PT2H")       # 7200 seconds
-parse_duration("PT1H30M45S") # 5445 seconds
-parse_duration("P1DT2H")     # 93600 seconds (1 day + 2 hours)
-parse_duration("PT-90S")     # -90 seconds (negative component)
-parse_duration("-PT1H30M")   # -5400 seconds (negative duration)
-```
-
-### 3. Numeric Input
-Direct numeric values (integers or floats):
-
-```python
-parse_duration(30)     # 30 seconds
-parse_duration(30.5)   # 30 seconds (truncated to int)
-parse_duration(-60)    # -60 seconds
-```
-
----
-
-## API Reference
-
-### Core Functions
-
-#### `parse_duration(v: Union[str, int, float]) -> int`
-Parse various duration formats into seconds.
-
-**Parameters:**
-- `v`: Duration input (string, integer, or float)
-
-**Returns:**
-- `int`: Duration in seconds
-
-**Raises:**
-- `ValueError`: Invalid format or unsupported input
-- `TypeError`: Unsupported input type
-
-**Examples:**
-```python
-parse_duration("1h30m")    # 5400
-parse_duration("PT1H30M")  # 5400  
-parse_duration(3600)       # 3600
-```
-
-#### `format_duration(seconds: int) -> str`
-Format durations into a human-readable string.
-
-**Parameters:**
-- `seconds`: Duration in seconds (can be negative)
-
-**Returns:**
-- `str`: Formatted duration string
-
-**Examples:**
-```python
-format_duration(5400)   # "1h30m"
-format_duration(90)     # "1m30s"
-format_duration(-3600)  # "-1h"
-```
-
-### Pydantic Types
-
-All types are aliases of `Annotated[int, BeforeValidator(parse_duration)]`:
-
-- **`Duration`**: General duration type
-- **`Seconds`**: Alias for Duration  
-- **`Minutes`**: Alias for Duration
-- **`Hours`**: Alias for Duration
-
-#### `DurationAdapter: TypeAdapter[Duration]`
-Singleton TypeAdapter for direct validation without Pydantic models.
-
-```python
-from duratypes import DurationAdapter
-
-result = DurationAdapter.validate_python("1h30m")  # 5400
-```
-
----
-
-## Pydantic Integration Examples
-
-### Basic Usage
-```python
-from pydantic import BaseModel
-from duratypes import Duration, Seconds, Minutes, Hours
-
-class TaskConfig(BaseModel):
-    timeout: Duration = "5m"
-    retry_delay: Seconds = "30s"
-    cache_ttl: Minutes = "15m"
-    session_duration: Hours = "2h"
-
-config = TaskConfig()
-print(config.timeout)  # 300
-```
-
-### Advanced Validation
-```python
-from pydantic import BaseModel, Field
-from duratypes import Duration
-
-class APIConfig(BaseModel):
-    request_timeout: Duration = Field(
-        default="30s",
-        description="HTTP request timeout"
-    )
-    rate_limit_window: Duration = Field(
-        default="1h", 
-        ge=60,  # Minimum 1 minute
-        description="Rate limiting time window"
-    )
-
-# Validation works seamlessly
-config = APIConfig(
-    request_timeout="45s",
-    rate_limit_window="2h30m"
-)
-```
-### JSON Schema Integration
-```python
-from pydantic import BaseModel
-from duratypes import Duration
-
-class Config(BaseModel):
-    timeout: Duration
-
-# Generate JSON schema
-schema = Config.model_json_schema()
-print(schema["properties"]["timeout"])
-# Shows integer type with validation
-```
-
----
-
-## Error Handling
-
-
-
-duratypes provides clear, specific error messages:
+Async timeout config stays readable at the boundary:
 
 ```python
 from duratypes import parse_duration
 
-# Invalid format
-try:
-    parse_duration("invalid")
-except ValueError as e:
-    print(e)  # Invalid duration format: 'invalid'. Supported formats: ...
-
-# Empty string
-try:
-    parse_duration("")
-except ValueError as e:
-    print(e)  # Duration string cannot be empty
-
-# Wrong type
-try:
-    parse_duration(None)
-except ValueError as e:
-    print(e)  # Duration cannot be None
+timeout_seconds = parse_duration("2.5m")
 ```
 
----
+## Pydantic Settings Example
 
-## Performance
+```python
+from pydantic import BaseModel
 
-duratypes is optimized for performance:
+from duratypes import Duration
 
-- **Singleton Pattern**: `DurationAdapter` reuses the same TypeAdapter instance
-- **Compiled Regex**: Pre-compiled patterns for fast parsing
-- **Integer Conversion**: All durations stored as integers for efficiency
-- **Minimal Dependencies**: Only depends on Pydantic
 
----
+class ServiceSettings(BaseModel):
+    request_timeout: Duration = "30s"
+    cache_ttl: Duration = "15m"
+    retry_window: Duration = "1h"
+
+
+settings = ServiceSettings()
+assert settings.request_timeout == 30
+assert settings.cache_ttl == 900
+assert settings.retry_window == 3600
+```
+
+Validation errors are normal Pydantic errors:
+
+```python
+from pydantic import BaseModel, ValidationError
+
+from duratypes import Duration
+
+
+class Settings(BaseModel):
+    timeout: Duration
+
+
+try:
+    Settings(timeout="forever")
+except ValidationError as exc:
+    print(exc)
+```
+
+## Supported Inputs
+
+Compound strings:
+
+```python
+parse_duration("30s")          # 30
+parse_duration("5m")           # 300
+parse_duration("2h")           # 7200
+parse_duration("1h30m")        # 5400
+parse_duration("1h 30m 45s")   # 5445
+parse_duration("1d2h")         # 93600
+parse_duration("1w")           # 604800
+parse_duration("1mo")          # 2592000
+parse_duration("1y")           # 31536000
+```
+
+ISO 8601 duration strings:
+
+```python
+parse_duration("PT30S")        # 30
+parse_duration("PT5M")         # 300
+parse_duration("PT2H")         # 7200
+parse_duration("PT1H30M45S")   # 5445
+parse_duration("P1DT2H")       # 93600
+```
+
+Numeric seconds:
+
+```python
+parse_duration(30)             # 30
+parse_duration(30.5)           # 30
+parse_duration(0)              # 0
+parse_duration(-60)            # -60
+```
+
+## Public API
+
+```python
+parse_duration
+format_duration
+Duration
+PositiveDuration
+NonNegativeDuration
+Milliseconds
+Seconds
+Minutes
+Hours
+DurationRange
+DurationAdapter
+DurationError
+InvalidFormatError
+InvalidTypeError
+InvalidValueError
+to_seconds
+to_milliseconds
+to_timedelta
+to_iso8601
+```
+
+`Duration`, `PositiveDuration`, `NonNegativeDuration`, `Seconds`, `Minutes`,
+and `Hours` are semantic aliases. They all normalize to integer seconds;
+`Minutes` does not store minutes and `Hours` does not store hours.
+
+`Milliseconds` is intentionally separate and normalizes to integer milliseconds.
+Numeric input is interpreted as seconds before conversion to milliseconds.
+
+`DurationAdapter` is a reusable Pydantic `TypeAdapter` for validation outside a
+model:
+
+```python
+from duratypes import DurationAdapter
+
+assert DurationAdapter.validate_python("1h30m") == 5400
+```
+
+`DurationRange` models inclusive min/max bounds:
+
+```python
+from duratypes import DurationRange
+
+window = DurationRange(min="5s", max="1m")
+assert window.min == 5
+assert window.max == 60
+```
+
+Serialization helpers convert duration input into common runtime forms:
+
+```python
+from datetime import timedelta
+
+from duratypes import to_iso8601, to_milliseconds, to_seconds, to_timedelta
+
+assert to_seconds("1h30m") == 5400
+assert to_milliseconds("1.5s") == 1500
+assert to_timedelta("5m") == timedelta(minutes=5)
+assert to_iso8601("1h30m") == "PT1H30M"
+```
+
+## Optional Integrations
+
+Integration helpers live under `duratypes.integrations` and keep framework
+coupling outside the core package.
+
+```python
+from duratypes.integrations.faststream import message_ttl_headers
+from duratypes.integrations.taskiq import retry_delay, task_timeout
+
+assert task_timeout("2m") == 120
+assert retry_delay("30s") == 30
+assert message_ttl_headers("15m")["x-message-ttl-ms"] == "900000"
+```
+
+FastAPI parameter helper functions require the optional extra:
+
+```bash
+pip install "duratypes[fastapi]"
+```
+
+## Behavior Notes
+
+- Strings are stripped before parsing, and whitespace between components is
+  allowed.
+- Numeric input is treated as seconds.
+- Float input truncates toward zero using `int(...)`.
+- Negative durations are supported with a leading `-`.
+- Leading `+` is accepted.
+- Empty strings, unsupported units, `None`, booleans, `NaN`, and infinities are
+  rejected.
+- Months and years are fixed approximations: `1mo` is 30 days, and `1y` is 365
+  days. These are not calendar-aware durations.
+- `format_duration()` returns compact compound strings such as `1h30m`.
+
+## Error Handling
+
+`duratypes` raises a small exception hierarchy:
+
+- `DurationError`: base class
+- `InvalidFormatError`: malformed duration strings
+- `InvalidTypeError`: unsupported input types such as `bool` or `object`
+- `InvalidValueError`: invalid values such as `None`, empty strings, `NaN`, or
+  infinity
+
+```python
+from duratypes import InvalidFormatError, parse_duration
+
+try:
+    parse_duration("1x")
+except InvalidFormatError:
+    print("not a supported duration")
+```
+
+## Performance Notes
+
+The parser uses compiled regular expressions, stores durations as integer
+seconds, and exposes a singleton `DurationAdapter` for repeated Pydantic
+validation. The normal test suite avoids fragile benchmarks; use the benchmark
+script for local smoke checks:
+
+```bash
+python benchmarks/parse_duration.py
+```
+
+## When to Use This
+
+Use `duratypes` when your application accepts human-readable durations for:
+
+- request timeouts
+- cache TTLs
+- retry windows
+- scheduling intervals
+- Pydantic/FastAPI configuration models
+- async runtime settings that expect seconds
+
+## When Not to Use This
+
+Do not use `duratypes` when you need calendar-aware arithmetic. Months and years
+are fixed approximations, so use `datetime`, `dateutil`, or a domain-specific
+calendar library for billing cycles, recurring events, or date math.
 
 ## Development
 
-### Requirements
-- Python ≥3.12
-- Pydantic ≥2.5
-
-### Setup Development Environment
 ```bash
-# Clone and setup
-git clone https://github.com/dillon-barendt/duratypes.git
-cd duratypes
-
-# Install with uv (recommended)
-uv sync
-source .venv/bin/activate
-
-# Or with pip
-pip install -e ".[dev]"
+uv sync --group dev
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src
+uv run pytest
+uv run python -m build
+uv run twine check dist/*
 ```
 
-### Running Tests
+## Release Process
+
+Releases are built by GitHub Actions and published with PyPI Trusted Publishing.
+No long-lived PyPI API tokens are required.
+
+Local validation:
+
 ```bash
-# Run all tests
-python -m pytest tests/ -v
-
-# Run with coverage
-python -m pytest tests/ --cov=duratypes --cov-report=html
-
-# Run specific test
-python -m pytest tests/test_core.py::test_parse_and_adapter -v
+uv sync --group dev
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src
+uv run pytest
+uv run python -m build
+uv run twine check dist/*
 ```
 
-### Code Quality
+Publish to PyPI only from a version tag after CI passes:
+
 ```bash
-# Linting
-ruff check src/ tests/
-
-# Formatting  
-ruff format src/ tests/
-
-# Type checking
-mypy src/
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
----
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-### Quick Contribution Steps
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes with tests
-4. Run the test suite (`python -m pytest`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
-
----
+See [RELEASE.md](RELEASE.md) for the full release checklist.
 
 ## License
 
-This project is licensed under the MIT - License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and changes.
+MIT. See [LICENSE](LICENSE).
