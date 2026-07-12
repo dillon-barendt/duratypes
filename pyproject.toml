@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=77", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.11.28,<0.12"]
+build-backend = "uv_build"
 
 [project]
 name = "duratypes"
@@ -10,10 +10,10 @@ readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [
-    { name = "Dillon Barendt", email = "dillon.barendt@ticket-vision.com" }
+    { name = "Dillon Barendt", email = "dillon.barendt@ticket-vision.com" },
 ]
 maintainers = [
-    { name = "Dillon Barendt", email = "dillon.barendt@ticket-vision.com" }
+    { name = "Dillon Barendt", email = "dillon.barendt@ticket-vision.com" },
 ]
 keywords = [
     "duration",
@@ -46,8 +46,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-fastapi = ["fastapi>=0.115"]
-integrations = ["fastapi>=0.115"]
+fastapi = [
+    "fastapi>=0.115",
+]
+integrations = [
+    "fastapi>=0.115",
+]
 
 [project.urls]
 Homepage = "https://github.com/dillon-barendt/duratypes"
@@ -56,18 +60,8 @@ Documentation = "https://dillon-barendt.github.io/duratypes/"
 Issues = "https://github.com/dillon-barendt/duratypes/issues"
 Changelog = "https://github.com/dillon-barendt/duratypes/blob/main/CHANGELOG.md"
 
-[tool.setuptools.packages.find]
-where = ["src"]
-
-[tool.setuptools.package-dir]
-"" = "src"
-
-[tool.setuptools.package-data]
-duratypes = ["py.typed"]
-
 [dependency-groups]
 dev = [
-    "build>=1.2.2",
     "pytest>=8.4.1",
     "pytest-cov>=4.0.0",
     "hypothesis>=6.0.0",
@@ -75,7 +69,6 @@ dev = [
     "mypy>=1.0.0",
     "mkdocs>=1.6.1",
     "mkdocs-material>=9.6.16",
-    "twine>=6.1.0",
 ]
 
 # Ruff configuration for linting and formatting
@@ -109,7 +102,7 @@ select = [
     "RUF", # ruff-specific rules
 ]
 ignore = [
-    "E501",   # line too long (handled by formatter)
+    "E501",    # line too long (handled by formatter)
     "PLR0913", # too many arguments
     "PLR2004", # magic value used in comparison
 ]
